@@ -92,8 +92,11 @@ From here on, you can continue with structured slash commands or just talk conve
 rescue-old-sideproject-with-claude/
 ├── README.md                    ← This file. Deleted at end of /init.
 ├── CLAUDE.md                    ← Sentinel-stub at start; rewritten by /init.
+├── .gitignore                   ← Claude scratch + settings.local.json
 ├── .claude/
 │   ├── operating-principles.md  ← Binding rules. Survives forever.
+│   ├── rhythm.md                ← Cadence for /walkthrough, /project-alignment, /distill.
+│   ├── settings.local.json.template
 │   ├── agents/
 │   │   ├── summarizer.md
 │   │   ├── verifier.md
@@ -115,7 +118,9 @@ rescue-old-sideproject-with-claude/
 │   │   ├── distill-md.md
 │   │   ├── handoff.md
 │   │   └── note.md
-│   └── settings.local.json.template
+│   └── guides/
+│       ├── dev-ergonomics-scripts.md       ← bin/setup, bin/dev design + pitfalls
+│       └── distill-audit-tooling.md         ← per-stack /distill audit cookbook
 └── .claude-plans/
     └── README.md                ← Plan directory conventions.
 ```

@@ -41,6 +41,9 @@ When a permission classifier blocks an action, when a hook fails, when sandbox d
 ### Ask once, then proceed.
 The user's most valuable input is their intention. Don't ask for judgment on details they shouldn't have to think about. But when scope is genuinely ambiguous, one focused question now prevents an hour of re-work. Calibrate.
 
+### Surface tools, don't insist on them.
+When the user appears to be reaching for a manual workflow that a slash command would do better — pasting a long context dump that should be `/handoff` material, debugging across 4+ subsystems that wants `/investigate`, manually walking a feature that fits `/walkthrough`, completing a plan that's overdue for the `/project-alignment` rhythm — surface the command as a one-line option once. If the user says "no, just keep going," drop it and don't bring it up again that session. Surface, don't nag. The cadence reference for standing maintenance commands is `.claude/rhythm.md`.
+
 ### Never demote the quality bar yourself.
 If the user has set a high quality bar ("v1 should feel polished and indispensable"), production hardening, time pressure, or scope creep are not justifications to ship something that doesn't meet it. If you cannot meet the bar in the current chunk, say so; don't quietly relax it.
 

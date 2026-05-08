@@ -36,6 +36,10 @@ This file orients Claude Code to this project. It is the first thing every sessi
 
 This project ships a set of binding operating principles at `.claude/operating-principles.md`. They cover sub-agent verification, plan discipline, documentation discipline, when to ask the user, and how to encode lessons. **Read that file before doing non-trivial work.** When in doubt, the principles win over improvisation.
 
+## Maintenance rhythm
+
+The standing maintenance commands (`/walkthrough`, `/project-alignment`, `/distill`) have cadences defined in `.claude/rhythm.md`. The orchestrator consults it on plan completion and at session boundaries to decide what (if anything) to surface. **Suggest, don't insist** — the user always says yes/no/later.
+
 ## Project Overview
 
 {{ PROJECT_OVERVIEW — one sentence on what the product is, plus 2-3 paragraphs on vision, target user, and the problem it solves. Filled in by /init from the user's stream-of-consciousness. }}

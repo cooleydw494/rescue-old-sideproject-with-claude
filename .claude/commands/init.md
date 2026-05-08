@@ -29,6 +29,8 @@ These are the failure modes that have happened in real rescues. Each is a hard r
 10. **Verify the user's claims against the codebase.** "I think the tests don't work" / "there's a file that's actually unrelated" / "the auth is broken" — confirm each before writing it as fact in CLAUDE.md. The user's memory of the project may be 3 years stale.
 11. **Generalize, but don't sand off the project's voice.** CLAUDE.md should sound like THIS project, not like a generic Laravel/Rails/Django scaffold. The user's anti-patterns and design philosophy are what differentiate it.
 12. **If the user does not engage with the conversation, do not proceed silently.** A blank or one-line `$ARGUMENTS` means stop and ask. The whole rescue depends on their input.
+13. **CUSTOMIZE blocks must be filled (or marked "N/A" with a reason), never left empty.** Phase 3.5 walks through each. An empty `<!-- PROJECT CUSTOMIZATION -->` is a kit that looks bootstrapped but isn't.
+14. **`bin/setup` and `bin/dev` must exist when the project has a non-trivial setup or boot story** — Phase 6.5 covers this. If you decide the project genuinely doesn't need them, document the reason in the project README's Setup/Development sections so a future contributor doesn't waste time looking.
 
 ---
 
@@ -198,6 +200,29 @@ If the work is judgment-heavy (which sections to include, how to phrase the phil
 
 ---
 
+## Phase 3.5 — Fill the agent and command CUSTOMIZE blocks
+
+Several `.claude/agents/*.md` and command files ship with `<!-- PROJECT CUSTOMIZATION: ... -->` blocks. They sit empty until you fill them. Empty CUSTOMIZE blocks are **the single biggest reason a kit looks bootstrapped but actually isn't** — so this phase is non-skippable.
+
+Walk these and fill them with the project specifics gathered in Phases 1-2:
+
+| File | What goes in the CUSTOMIZE block |
+|------|----------------------------------|
+| `.claude/agents/summarizer.md` | The project's key architectural patterns to look for during recon (trait composition, observer/event side effects, ORM conventions, frontend integration points) |
+| `.claude/agents/verifier.md` | Project-specific verification checks (authorization patterns, ORM pitfalls, frontend data contracts, feature toggle dependencies) |
+| `.claude/agents/code-reviewer.md` | Project-specific review checks (auth middleware, scoping conventions, validation idioms, view path validity) |
+| `.claude/agents/distill-verifier.md` | Per-area Green Signal Matrix — test commands and static-analysis subcommands whose findings must not regress for a Tier A change. See `.claude/guides/distill-audit-tooling.md` for stack-specific cookbooks. |
+| `.claude/commands/work-plan.md` | Quality Sweep prompts adapted to the project's stack (cross-page consistency, stale code, UX polish, backend hygiene — adapt to the architecture) |
+| `.claude/commands/distill.md` | Static-analysis orchestrator command + the area-to-signals matrix for Tier A verification. See `dev-ergonomics-scripts.md` and `distill-audit-tooling.md`. |
+| `.claude/commands/project-alignment.md` | Project-specific debug helpers, design-system patterns, and drift signals to check |
+| `.claude/commands/note.md` | Note types and their target files (e.g., `IDEA-NOTES.md`, `FIX-TWEAK-NOTES.md`), plus per-type formatting conventions |
+
+**After filling each block, delete the surrounding `<!-- PROJECT CUSTOMIZATION: ... -->` markers.** A filled block with the marker still around it reads as unfilled to a future agent.
+
+If the project genuinely doesn't have content for a block (e.g., no observers, no static-analysis suite yet), write a one-line "N/A — <reason>" rather than leaving it empty. The reason explains to the next agent why it's blank, so they don't try to fill it speculatively.
+
+---
+
 ## Phase 4 — Subtree CLAUDE.md (optional, often deferred)
 
 A single root CLAUDE.md is fine for the first session. Subtree CLAUDE.mds (e.g., `app/Models/CLAUDE.md`, `frontend/CLAUDE.md`) emerge naturally when:
@@ -253,11 +278,28 @@ Execute the chunk using the chunk file's stated execution strategy. If the strat
 
 ---
 
+## Phase 6.5 — Dev-ergonomics scripts (`bin/setup`, `bin/dev`)
+
+If the project doesn't already have working bootstrap and daily-boot scripts, create them. This is **surprisingly hard to get right and worth getting right** — it's the difference between a project a returning developer can use again and a project they have to relearn every time.
+
+Before writing, **read `.claude/guides/dev-ergonomics-scripts.md` in full**. It encodes the design principles (no `sudo`, no `.env` overwrite, idempotent, distinguish hard/soft fails) and the pitfalls (Bash 3.2 empty arrays, Homebrew on multi-user macs, `set -e` killing soft-fail handlers). Skipping the guide reliably produces a script with one of those pitfalls in it.
+
+What to create:
+
+- **`bin/setup`** — first-time bootstrap. Idempotent. Creates `.env` from `.env.example` only if missing, installs dependencies, runs migrations, builds initial assets if applicable. Re-runnable as a no-op when everything is already good.
+- **`bin/dev`** — daily boot. Verifies setup ran, starts required services if they're not already up, ends with `exec` to the actual dev server so signals are forwarded cleanly.
+
+Some projects only need one or neither (a static site doesn't need `bin/setup`; a project without long-running services may not need `bin/dev`). **Don't manufacture work** — but if there's a non-trivial setup or boot story, encode it. The skeletons in the guide are the starting points.
+
+Both scripts go in `bin/`, get `chmod +x`, and are referenced from the project README's Setup and Development sections.
+
+---
+
 ## Phase 7 — Write the project-facing README.md
 
 The kit's `README.md` is for GitHub readers of the rescue starter. Replace it with a project-specific `README.md` that explains the project to its own readers (the user, future contributors, future-you).
 
-The project README should be tight. Roughly:
+The project README should be tight but it MUST include the "working-with-Claude" framing — that's how the user (and future contributors) understand the role they play. Don't reduce that section to a flat command list; the framing is what keeps the system from going on autopilot. Roughly:
 
 ```markdown
 # <Project Name>
@@ -268,6 +310,10 @@ The project README should be tight. Roughly:
 
 <2-3 paragraphs on vision and target user>
 
+## What it is not
+
+<the explicit anti-patterns — often more important than the feature list>
+
 ## Stack
 
 <bullet list of major dependencies>
@@ -275,52 +321,111 @@ The project README should be tight. Roughly:
 ## Setup
 
 ```bash
-<setup commands — point to bin/setup if it exists>
+./bin/setup
 ```
+
+<one-sentence description of what setup does — "installs deps, creates .env, runs migrations">
 
 ## Development
 
 ```bash
-<dev commands — point to bin/dev if it exists>
+./bin/dev
 ```
+
+<one-sentence description of what bin/dev does — "starts services, launches dev server">
 
 ## Working with Claude Code on this project
 
-This project uses a multi-agent SDLC with `.claude/agents/` and `.claude/commands/`. The most useful entry points:
+This project is built with a Claude-Code-driven SDLC. **The system has rails (`.claude/operating-principles.md`, the multi-agent setup, plan conventions) but those rails don't substitute for your judgment.** When something feels wrong, say so. When you confirm an approach worked, say so. The system absorbs your taste over time — that's the whole point. It does not run on autopilot.
+
+You don't have to memorize anything. Just talk to Claude conversationally about what you want — Claude will reach for the right tool. The slash commands below are shortcuts for when you want them:
 
 - `/work-plan <name>` — resume the active plan
 - `/create-plan` — start a new plan
 - `/investigate <question>` — structured deep-dive on any problem
-- `/walkthrough` — cognitive QA of a feature
+- `/walkthrough [focus]` — cognitive QA of a feature without a browser
 - `/project-alignment` — periodic doc/code drift check
+- `/distill` / `/distill-md` — bloat audits for code and config files
 - `/handoff` — transfer context to a fresh session (better than `/compact`)
+- `/note` — capture an idea, fix, or tweak
 
-You don't need to memorize these. Conversational requests work too — Claude will pick the right tool. The slash commands are there when you want them.
+Claude follows a rhythm for the standing maintenance commands (`/walkthrough`, `/project-alignment`, `/distill`) — see `.claude/rhythm.md`. You don't need to track this; Claude will surface suggestions at the right moments. Override freely.
 
-See `.claude/operating-principles.md` for the rules that govern every session.
+The rules every session inherits live in `.claude/operating-principles.md`. The plan conventions live in `.claude-plans/README.md`. You don't need to read either to use the system, but they're there.
 
 ## License
 
 <TBD or what user specifies>
 ```
 
-Keep it short. The user can expand it later.
+Keep the project-specific sections short. The user can expand them later. **Do not remove or shorten the "Working with Claude Code on this project" framing paragraph** — that's the load-bearing piece that prevents the system from being treated as a black box.
 
 ---
 
-## Phase 8 — Commit and clean up the kit
+## Phase 8 — Cleanup, settings, and commit
 
-Stage everything and create the first "rescue era" commit:
+Before staging, finalize three housekeeping items.
+
+### 8a. Settings file
+
+Rename `.claude/settings.local.json.template` to `.claude/settings.local.json` and tune it for the project's stack. The template has stack-specific recipe blocks (`node_npm`, `php_laravel`, `python`, etc.) — pick the one(s) that match, merge those entries into the `allow` list, then delete the `_stack_specific_recipes` block entirely. Don't leave the unused recipes around as dead config.
+
+If the project's docs domain isn't in the `WebFetch` allows, add it (e.g., `WebFetch(domain:laravel.com)` for Laravel projects, `WebFetch(domain:rubyonrails.org)` for Rails).
+
+### 8b. .gitignore
+
+If the project already has a `.gitignore`, append (don't overwrite) the kit's lines:
+
+```
+# Claude Code
+.claude/settings.local.json
+.claude/worktrees/
+.claude-distill-scratch/
+.claude-distill-history/
+```
+
+If there's no `.gitignore`, create one with the above plus standard ignores for the project's stack. The kit's own `.gitignore` covers only the Claude-related paths; the project may need more (e.g., `node_modules/`, `vendor/`, `.env`, OS-specific clutter).
+
+### 8c. Delete the kit-specific files
+
+These are for the kit's GitHub readers and are no longer needed:
+
+- The kit's `README.md` (you replaced it in Phase 7)
+- `.claude/settings.local.json.template` (you renamed it in 8a)
 
 ```bash
-git add CLAUDE.md README.md .claude/ .claude-plans/ <files-from-the-first-chunk>
-git rm <stale-or-deleted-files-from-the-old-codebase>  # if any
+git rm .claude/settings.local.json.template  # if not already moved via mv
+```
+
+### 8d. Verify the final state checklist
+
+Before committing, confirm every item:
+
+- ✅ STARTER SENTINEL block removed from CLAUDE.md
+- ✅ All `{{ PLACEHOLDER }}` markers in CLAUDE.md filled or replaced with "TBD"
+- ✅ All `<!-- PROJECT CUSTOMIZATION: ... -->` markers in `.claude/agents/*.md` and `.claude/commands/*.md` either filled or marked "N/A"
+- ✅ Project-specific `README.md` (with the engagement framing intact) replaces the kit's
+- ✅ `.claude/settings.local.json` exists with stack-tuned permissions; `.template` and `_stack_specific_recipes` are gone
+- ✅ `.gitignore` covers `.claude/settings.local.json`, `.claude/worktrees/`, and Claude scratch dirs
+- ✅ `bin/setup` and `bin/dev` exist (or are documented as "not needed because <reason>")
+- ✅ `.claude-plans/<first-plan-name>/` exists with OVERVIEW + CHECKLIST + numbered chunks + capstone
+- ✅ First chunk is checked off `[x]` in CHECKLIST.md and its work is staged
+- ✅ Memory files exist for user, project vision, project context (and any feedback captured)
+- ✅ One commit, atomically — no partial commits
+
+If any of those is false, finish it before committing.
+
+### 8e. The commit
+
+```bash
+git add CLAUDE.md README.md .gitignore .claude/ .claude-plans/ bin/ <files-from-the-first-chunk>
+git rm <stale-or-deleted-files-from-the-old-codebase>  # if the foundation rebuild deleted anything
 git commit -m "$(cat <<'EOF'
 chunk: <first-plan-name> - <first-chunk-name>
 
 Establishes Claude Code orchestration infrastructure (agents, commands,
-operating principles, plan conventions) AND completes the first chunk of
-the <plan-name> plan: <one-line summary>.
+operating principles, plan conventions, dev-ergonomics scripts) AND
+completes the first chunk of the <plan-name> plan: <one-line summary>.
 
 Decisions locked during kickoff:
 - <decision 1>
@@ -330,18 +435,6 @@ Next: /work-plan <plan-name>
 EOF
 )"
 ```
-
-Things that should be true after this commit:
-
-- ✅ STARTER SENTINEL block removed from CLAUDE.md
-- ✅ Project-specific README.md replaces the kit's GitHub-facing README
-- ✅ All `{{ PLACEHOLDER }}` markers in CLAUDE.md filled or removed
-- ✅ `.claude-plans/<first-plan-name>/` exists with OVERVIEW + CHECKLIST + chunks + capstone
-- ✅ First chunk is checked off in CHECKLIST.md and its work is in the commit
-- ✅ Memory files exist for user, project vision, project context (and any feedback captured)
-- ✅ One commit, atomically
-
-If any of those is false, do not commit yet. Finish them.
 
 ---
 

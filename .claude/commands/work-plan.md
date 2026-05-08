@@ -18,10 +18,16 @@ From `.claude-plans/$ARGUMENTS/`:
 > "I'm resuming work on the plan at `.claude-plans/$ARGUMENTS/`. I've read CHECKLIST.md and OVERVIEW.md. Read through all the chunk files and brief me on anything that's evolved — session notes, discoveries, deviations, or context from earlier work that might matter for what's next."
 
 ### 3. Select Next Chunk
-First unchecked `[ ]` in CHECKLIST.md whose dependencies are satisfied (or the chunk the user named). Read ONLY that chunk's file.
+First unchecked `[ ]` in CHECKLIST.md whose dependencies are satisfied (or the chunk the user named). **Read that chunk's file in full** — not skimmed, not partial. Session notes from prior sessions may have changed the chunk's premises (added Pre-existing Issues, dropped sub-items, locked new decisions). Plan resumption discipline is non-negotiable.
 
 ### 4. Announce Your Focus
-Chunk, goal, acceptance criteria, relevant prior context.
+Reflect back to the user in 2-3 lines:
+- Which chunk you're working on
+- Its goal and acceptance criteria
+- Anything in the chunk's Session Notes from prior sessions that affects this work
+- The execution strategy (executor-based vs. direct)
+
+The reflection forces the in-full read AND gives the user a chance to course-correct before any work starts. Don't skip it.
 
 ## Execution
 
@@ -92,13 +98,29 @@ Launch 4 parallel @verifier agents to answer: **"What did we miss that no plan w
 
 **Note:** If the sweep surfaces significant work (e.g., accessibility across 30+ files), flag it as a follow-up rather than blocking archive.
 
-### Step 3: Archive
+### Step 3: Rhythm Check
+
+Before archiving, consult `.claude/rhythm.md` and check:
+
+1. Has it been ≥2-3 plans since the last `/walkthrough`, AND did this plan touch user-facing flows? If yes, suggest `/walkthrough` on the affected stories.
+2. Has it been ≥5-7 plans since the last `/project-alignment`? If yes, suggest a drift check.
+3. Was this plan a major refactor (touched 20+ files OR rewrote a subsystem)? If yes, suggest `/distill` on the touched area.
+
+To know the count, scan `.claude-plans/archive/` mtimes or check the rhythm log in memory (`reference_rhythm_log.md` if it exists). Don't fabricate counts.
+
+**Suggest, don't insist.** One sentence: "It's been 3 plans since the last `/walkthrough` and this one touched the auth flow — want me to run it before we archive?" If the user says no, drop it and continue. If yes, run it and append a one-line entry to the rhythm log.
+
+### Step 4: Versioned Archive Name
+
+Before moving the plan, check `.claude-plans/archive/` for a name collision. **Never reuse a previous archive's name** — silent overwrites lose history. If `<plan-name>` already exists in archive, append a version suffix or descriptive qualifier (`<plan-name>-v2`, `<plan-name>-followups`, `<plan-name>-phase-15-16`).
+
+### Step 5: Archive
 
 1. Congratulate the user on completing the plan
-2. Move the plan to archive:
+2. Move the plan to archive (using the unique name from Step 4):
    ```bash
-   mv .claude-plans/<plan-name> .claude-plans/archive/<plan-name>
-   git add .claude-plans/ && git commit -m "chore: Archive completed plan <plan-name>"
+   mv .claude-plans/<plan-name> .claude-plans/archive/<archive-name>
+   git add .claude-plans/ && git commit -m "chore: Archive completed plan <archive-name>"
    ```
 
 ## If Blocked
