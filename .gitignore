@@ -1,0 +1,7 @@
+# Real settings.local.json is per-developer; only the .template is committed.
+.claude/settings.local.json
+
+# Claude Code runtime/scratch (created during use, not source-of-truth).
+.claude/worktrees/
+.claude-distill-scratch/
+.claude-distill-history/
